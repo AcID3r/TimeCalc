@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Animation Preview</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/three@0.150.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/@react-three/fiber@8/dist/react-three-fiber.min.js"></script>
+    <script src="https://unpkg.com/@react-three/drei@9/index.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        #root { width: 100vw; height: 100vh; background-color: black; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useRef, useEffect, Suspense } = React;
+        const { Canvas, useFrame } = ReactThreeFiber;
+        const { Text, useGLTF, OrbitControls } = drei;
+
+        function StripedLines() {
+            const linesRef = useRef();
+
+            useFrame(({ clock }) => {
+                if (linesRef.current) {
+                    linesRef.current.rotation.z = Math.sin(clock.getElapsedTime() * 0.5) * 0.1;
+                }
+            });
+
+            return (
+                <group ref={linesRef}>
+                    {Array.from({ length: 20 }).map((_, i) => (
+                        <mesh key={i} position={[0, i * 0.2 - 2, -1]}>
+                            <planeGeometry args={[4, 0.05]} />
+                            <meshBasicMaterial color="white" />
+                        </mesh>
+                    ))}
+                </group>
+            );
+        }
+
+        function AnimationScene() {
+            const groupRef = useRef();
+            const textRef = useRef();
+            const robotRef = useRef();
+            const bubbleRef = useRef();
+            const { scene } = useGLTF('https://threejs.org/examples/models/gltf/DamagedHelmet/glTF/DamagedHelmet.gltf');
+
+            useEffect(() => {
+                if (robotRef.current) {
+                    robotRef.current.scale.set(0.5, 0.5, 0.5);
+                    robotRef.current.position.set(2, -1.5, 0);
+                }
+            }, []);
+
+            useFrame(({ clock }) => {
+                const t = clock.getElapsedTime();
+                
+                if (textRef.current) {
+                    textRef.current.position.y = Math.sin(t * 2) * 0.1 + 1;
+                }
+
+                if (robotRef.current) {
+                    robotRef.current.position.y = Math.min(t * 0.5 - 1.5, -0.5);
+                }
+
+                if (bubbleRef.current) {
+                    bubbleRef.current.position.y = Math.min(t * 0.5 - 1, 0);
+                    bubbleRef.current.scale.setScalar(Math.min(t * 0.5, 1));
+                }
+
+                if (t > 7 && groupRef.current) {
+                    groupRef.current.visible = false;
+                }
+            });
+
+            return (
+                <group ref={groupRef}>
+                    <StripedLines />
+                    <Text
+                        ref={textRef}
+                        position={[0, 1, 0]}
+                        fontSize={0.5}
+                        color="white"
+                        anchorX="center"
+                        anchorY="middle"
+                    >
+                        Hovering Text
+                    </Text>
+                    <group ref={robotRef}>
+                        <primitive object={scene} />
+                        <mesh ref={bubbleRef} position={[0.5, 1, 0]}>
+                            <sphereGeometry args={[0.5, 32, 32]} />
+                            <meshBasicMaterial color="white" />
+                        </mesh>
+                        <Text
+                            position={[0.5, 1, 0]}
+                            fontSize={0.1}
+                            color="black"
+                            anchorX="center"
+                            anchorY="middle"
+                        >
+                            Created By MADHAV
+                        </Text>
+                    </group>
+                </group>
+            );
+        }
+
+        function App() {
+            return (
+                <Canvas camera={{ position: [0, 0, 5], fov: 75 }}>
+                    <Suspense fallback={null}>
+                        <AnimationScene />
+                    </Suspense>
+                    <OrbitControls enableZoom={false} enablePan={false} />
+                </Canvas>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
+
